@@ -1,16 +1,19 @@
 //! 俄罗斯方块Tetris游戏的逻辑都写在这个文件
+//!
+//! 犯了个很蠢的错，玩家的动作和游戏的状态应该是分开的，
+//! 为了补救，加了个新的状态None
 
 use std::fmt::{Debug, Formatter};
-use std::ops::Div;
 use rand::{thread_rng, Rng, rngs::ThreadRng};
 
-/// 玩家的动作, 有向左，向右，转向，向下，什么都不做（自由下落）
+/// 玩家的动作, 有向左，向右，转向，向下，什么都不做（自由下落），冻住
 pub enum UserAction {
     Left, // 向左
     Right, // 向右
     Rotate, // 旋转
-    Down, // 快速下落
-    None, // 什么都不做，自由下落
+    QuickDown, // 快速下落
+    Down, // 什么都不做，自由下落
+    None, // 冻住
 }
 
 /// 保存每个可能的方块形状的结构体
@@ -18,7 +21,6 @@ pub enum UserAction {
 struct Shape {
     shape: [[u8;4];4], // 4个方块的形状，主要用来现实在next shape里
     position: [(usize,usize);4], // 4个方块在main view里的初始坐标
-
 }
 
 
@@ -179,13 +181,16 @@ impl Tetris {
                 // 旋转形状
                 self.rotate();
             }
-            UserAction::Down => {
+            UserAction::QuickDown => {
                 // 快速下落
                 self.quick_down();
             }
-            UserAction::None => {
+            UserAction::Down => {
                 // 自由下落
                 self.free_down();
+            }
+            UserAction::None => {
+                // 直接返回，什么都不做
             }
         }
     }
@@ -242,12 +247,21 @@ impl Tetris {
         let new_coords = Self::spin_90_degree(self.current_shape_coords);
 
         for (x,y) in new_coords {
-            // 检查旋转后的形状是否超出边界或者碰撞了其他方块
-            if x > 9 || y > 19 || self.main_view[y][x] == 2 {
-                // 如果超出边界或者碰撞了其他方块，不做任何操作
+            // 检查旋转后的形状是否超出边界
+            if x < 0 ||x > 9 || y < 0 || y > 19 {
+                // 如果超出边界或，不做任何操作
                 return;
             }
         }
+        let new_coords = new_coords.map(|(x,y)| (x as usize, y as usize));
+        for (x,y) in new_coords {
+            // 检查是否碰撞了其他方块
+            if self.main_view[y][x] == 2 {
+                // 如果碰撞了，不做任何操作
+                return;
+            }
+        }
+
         // 清除原先的形状
         for (x,y) in self.current_shape_coords {
             self.main_view[y][x] = 0;
@@ -259,16 +273,7 @@ impl Tetris {
         self.current_shape_coords = new_coords;
     }
 
-    fn spin_90_degree(coords: [(usize, usize); 4]) -> [(usize,usize);4] {
-
-        //如果是正方形，则什么都不动
-        if coords[0].0 == coords[1].0 // 第一个点的x等于第二个点的x
-            && coords[0].1 == coords[2].1 // 第一个点的y等于第三个点的y
-            && coords[0].0 + 1 == coords[3].0 // 第一个点的x比第四个点的x大一
-            && coords[0].1 + 1 == coords[3].1 // 第一个点的y比第四个点的y大一
-        {
-            return coords;
-        }
+    fn spin_90_degree(coords: [(usize, usize); 4]) -> [(isize,isize);4] {
 
         // 将图像围绕中心（第二个坐标）顺时针旋转90度
         // 先把所有坐标转换为小数f64
@@ -286,11 +291,11 @@ impl Tetris {
             (y, -x)
         }).collect();
         // 计算旋转90度后的绝对坐标，四舍五入，转换为usize
-        let new_coords: [(usize, usize); 4] = new_coords_relative.iter().map(|&(x, y)| {
-            let x = (x + cx).round() as usize;
-            let y = (y + cy).round() as usize;
+        let new_coords: [(isize, isize); 4] = new_coords_relative.iter().map(|&(x, y)| {
+            let x = (x + cx).round() as isize;
+            let y = (y + cy).round() as isize;
             (x, y)
-        }).collect::<Vec<(usize, usize)>>().try_into().unwrap();
+        }).collect::<Vec<(isize, isize)>>().try_into().unwrap();
         new_coords
     }
 
@@ -373,6 +378,10 @@ impl Tetris {
             return;
         }
         // 每消除一行，得10分，如果一次消除多行，得分更高
+        if full_rows == 1 {
+            self.score += 10;
+            return;
+        }
         // 同时消除一行得10分，消除两行得30分，消除三行得80分，消除四行得150分
         self.score += 10 * (full_rows * full_rows - 1);
     }
@@ -447,11 +456,11 @@ mod tests {
     fn test_rotate(){
         let mut tetris = Tetris::new();
         print!("{:?}", tetris);
-        tetris.next(UserAction::None);
+        tetris.next(UserAction::Down);
         print!("{:?}", tetris);
-        tetris.next(UserAction::None);
+        tetris.next(UserAction::Down);
         print!("{:?}", tetris);
-        tetris.next(UserAction::None);
+        tetris.next(UserAction::Down);
         print!("{:?}", tetris);
         tetris.rotate();
         print!("{:?}", tetris);
@@ -463,7 +472,7 @@ mod tests {
         print!("{:?}", tetris);
         tetris.quick_down();
         print!("{:?}", tetris);
-        tetris.next(UserAction::None);
+        tetris.next(UserAction::Down);
         print!("{:?}", tetris);
     }
 
