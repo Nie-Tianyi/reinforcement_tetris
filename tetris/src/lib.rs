@@ -1,2 +1,1 @@
-mod display;
-mod tetris;
+pub mod tetris;
