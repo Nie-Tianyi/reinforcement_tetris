@@ -192,21 +192,49 @@ impl Tetris {
 
     fn move_left(&mut self) {
         // 向左移动
+        // 判断有没有碰到左边界或者碰到其他固定方块，如果有，则取消操作
         for (x,y) in self.current_shape_coords {
             if x == 0 || self.main_view[y][x-1] == 2 {
                 return;
             }
         }
+        // 计算新的坐标
+        let new_coords = self.current_shape_coords.map(
+            |(x,y)| (x-1,y)
+        );
+        // 清空原先图案
+        for (x,y) in self.current_shape_coords {
+            self.main_view[y][x] = 0;
+        }
+        // 画上新图案
+        for (x,y) in new_coords {
+            self.main_view[y][x] = 1;
+        }
+        self.current_shape_coords = new_coords;
 
     }
 
     fn move_right(&mut self) {
         // 向右移动
+        // 判断有没有碰到右边界或者碰到其他固定方块，如果有，则取消操作
         for (x,y) in self.current_shape_coords {
             if x == 9 || self.main_view[y][x+1] == 2 {
                 return;
             }
         }
+        // 计算新的坐标
+        let new_coords = self.current_shape_coords.map(
+            |(x,y)| (x+1,y)
+        );
+        // 清空原先图案
+        for (x,y) in self.current_shape_coords {
+            self.main_view[y][x] = 0;
+        }
+        // 画上新图案
+        for (x,y) in new_coords {
+            self.main_view[y][x] = 1;
+        }
+        self.current_shape_coords = new_coords;
     }
 
     fn rotate(&mut self) {
@@ -437,6 +465,16 @@ mod tests {
         print!("{:?}", tetris);
         tetris.next(UserAction::None);
         print!("{:?}", tetris);
+    }
+
+    #[test]
+    fn test_move_left_and_right(){
+        let mut tetris = Tetris::new();
+        println!("{:?}", tetris);
+        tetris.move_left();
+        println!("{:?}", tetris);
+        tetris.move_right();
+        println!("{:?}", tetris);
     }
 
     #[test]
