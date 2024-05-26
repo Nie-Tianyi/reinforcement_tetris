@@ -1,4 +1,6 @@
-//! 表示注释
+//! 俄罗斯方块游戏
+//!
+//! todo: 旋转逻辑和常见的旋转逻辑不一样，有待改进
 
 use std::fmt::{Display, Formatter};
 use std::io::{stdout, Write};
@@ -17,7 +19,10 @@ fn main() {
     let (tx,rx) = mpsc::channel();
 
     // 开启原始模式，输入不通过缓冲直接传递给程序
+    // Windows 终端会默认执行输入两遍
+    // Mac 表现正常
     enable_raw_mode().unwrap();
+
 
     thread::spawn(move || {
         loop {
@@ -81,7 +86,7 @@ struct TUI([[bool; 10]; 20], i64, [[bool; 4]; 4]);
 
 impl Display for TUI {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // Drawing main board
+        // 画出主视图
         for row in self.0.iter() {
             for &cell in row.iter() {
                 write!(f, "{}", if cell { " ■" } else { " □" })?;
@@ -89,10 +94,10 @@ impl Display for TUI {
             write!(f, "\r\n")?;
         }
 
-        // Drawing score
+        // 分数
         write!(f, "\r\nScore: {}\r\n\r\nNext Shape:\r\n", self.1)?;
 
-        // Drawing next shape
+        // 下一个形状
         for row in self.2.iter() {
             for &cell in row.iter() {
                 write!(f, "{}", if cell { " ■" } else { " □" })?;
