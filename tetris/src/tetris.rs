@@ -1,25 +1,22 @@
 //! 俄罗斯方块Tetris游戏的逻辑都写在这个文件
-//!
-//! 犯了个很蠢的错，玩家的动作和游戏的状态应该是分开的，
-//! 为了补救，加了个新的状态None
 
 use std::fmt::{Debug, Formatter};
 use rand::{thread_rng, Rng, rngs::ThreadRng};
 
-/// 玩家的动作, 有向左，向右，转向，向下，什么都不做（自由下落），冻住
+/// 玩家的动作, 有向左，向右，转向，快速下落，自由下落，和什么都不做
 pub enum UserAction {
     Left, // 向左
     Right, // 向右
     Rotate, // 旋转
     QuickDown, // 快速下落
-    Down, // 什么都不做，自由下落
+    Down, // 自由下落
     None, // 冻住
 }
 
 /// 保存每个可能的方块形状的结构体
 #[derive(Debug,Copy, Clone)]
 struct Shape {
-    shape: [[u8;4];4], // 4个方块的形状，主要用来现实在next shape里
+    shape: [[u8;4];4], // 4个方块的形状，主要用来显示在next shape里
     position: [(usize,usize);4], // 4个方块在main view里的初始坐标
 }
 
@@ -274,7 +271,7 @@ impl Tetris {
     }
 
     fn spin_90_degree(coords: [(usize, usize); 4]) -> [(isize,isize);4] {
-
+        // 输入一个形状的坐标，返回旋转90度后的坐标，返回为isize类型，因为旋转后坐标可能会变成负数
         // 将图像围绕中心（第二个坐标）顺时针旋转90度
         // 先把所有坐标转换为小数f64
         let coords_float: Vec<(f64, f64)> = coords.iter().map(|&(x, y)| (x as f64, y as f64)).collect();
@@ -290,7 +287,7 @@ impl Tetris {
         let new_coords_relative: Vec<(f64, f64)> = coords_relative.iter().map(|&(x, y)| {
             (y, -x)
         }).collect();
-        // 计算旋转90度后的绝对坐标，四舍五入，转换为usize
+        // 计算旋转90度后的绝对坐标，四舍五入，转换为isize
         let new_coords: [(isize, isize); 4] = new_coords_relative.iter().map(|&(x, y)| {
             let x = (x + cx).round() as isize;
             let y = (y + cy).round() as isize;
